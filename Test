@@ -1,0 +1,40 @@
+from core.checker import check_password_strength
+
+def test_password_too_short():
+    #Тест: пароль короче 8 символов должен быть слабым.
+    result = check_password_strength("12345")
+    assert result["score"] <= 1
+    assert any("длину" in rec for rec in result["recommendations"])
+
+def test_password_no_digits():
+    #Тест: пароль без цифр не должен получить высший балл.
+    result = check_password_strength("OnlyLetters")
+    found = any(
+        "цифр" in rec.lower() or "digit" in rec.lower()
+        for rec in result["recommendations"]
+    )
+
+    assert (
+        found
+    ), f"Ожидалась рекомендация про цифры, но получено: {result['recommendations']}"
+    assert result["score"] < 5
+
+def test_strong_password():
+    #Тест: сложный пароль должен получить 5/5.
+    result = check_password_strength("Extr3me!P@ssw0rd")
+    assert result["score"] == 5
+    assert len(result["recommendations"]) == 0
+    assert result["label"] == "Отличный"
+
+def test_dictionary_password():
+    #Тест: пароль из словаря должен быть сброшен в 0 баллов.
+    common = ["password", "123456", "admin"]
+    result = check_password_strength("password", common_passwords=common)
+    assert result["score"] == 0
+    assert "слишком часто встречается" in result["recommendations"][0]
+
+def test_case_sensitivity_in_dictionary():
+    #Тест: проверка по словарю должна игнорировать регистр.
+    common = ["qwerty"]
+    result = check_password_strength("QWERTY", common_passwords=common)
+    assert result["score"] == 0
